@@ -126,7 +126,7 @@ def draw_stamp_sizer(screen, canvas_rect, button_data, tool_settings, stamp_list
 
         # 1 < stamp_size < 100
         stamp_size = max(1, min(100, stamp_size))
-        if tool_settings["tool"] == "stamp":
+        if tool_settings["tool"] == "stamp" and stamp_list:
             dont_update = True
             # draw a preview of the stamp with the current size onto the canvas
             stamp = stamp_list[0]

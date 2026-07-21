@@ -1,6 +1,5 @@
 # src/buttons.py
 
-from os import listdir
 from tkinter import filedialog
 from pygame import *
 from src.config import *
@@ -8,8 +7,6 @@ from src.utils import fit_img_to_rect, write_centered_text
 
 
 init()
-# load all mp3s in assets/music
-music_list = ["assets/music/" + music for music in listdir("assets/music") if music.endswith(".mp3")]
 
 buttons = {
     "fill": {

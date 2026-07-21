@@ -68,7 +68,9 @@ def main():
     stamp_size = 10
     volume = 2
     fill = False
-    tool_settings = {"tool": tool, "col": col, "radius": radius, "fill": fill, "stamp": stamp_list[0], "stamp_size": stamp_size, "volume": volume}
+    # fall back to a blank surface if the user has not added any stamp images
+    current_stamp = stamp_list[0] if stamp_list else Surface((100, 100))
+    tool_settings = {"tool": tool, "col": col, "radius": radius, "fill": fill, "stamp": current_stamp, "stamp_size": stamp_size, "volume": volume}
 
     undo_list = [screen.subsurface(canvas_rect).copy()]
     redo_list = []
@@ -152,7 +154,8 @@ def main():
         # draw the stamp sizer and volume slider and update the tool settings
         stamp_size, dont_update = draw_stamp_sizer(screen, canvas_rect, button_data, tool_settings, stamp_list)
         volume = draw_volume_slider(screen, button_data, tool_settings)
-        tool_settings = {"tool": tool, "col": col, "radius": radius, "fill": fill, "stamp": stamp_list[0], "stamp_size": stamp_size, "volume": volume}
+        current_stamp = stamp_list[0] if stamp_list else tool_settings["stamp"]
+        tool_settings = {"tool": tool, "col": col, "radius": radius, "fill": fill, "stamp": current_stamp, "stamp_size": stamp_size, "volume": volume}
         
         # check if the user is using the tool
         if canvas_rect.collidepoint(dmx,dmy) or tool_settings["tool"] == "select":
@@ -170,11 +173,10 @@ def main():
         omx,omy=mx,my
         myClock.tick(60)  # Adjust the frame rate as needed
         display.flip()
-        display.set_caption("Spongebob Paint Project - Ario Barin Ostovary")
-        
+        display.set_caption("Paint Project - Ario Barin Ostovary")
+
 
     quit()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
