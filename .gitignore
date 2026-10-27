@@ -1,0 +1,4 @@
+# pygbag output
+build/
+*-pygbag.*
+__pycache__/

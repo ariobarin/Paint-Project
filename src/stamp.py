@@ -10,7 +10,7 @@ next_preview = Rect(690, 690, 100, 100)
 
 def initialize_stamps():
     # load all the images in the assets/stamps folder w/o scaling them
-    stamp_list = [image.load(f"assets/stamps/{img}") for img in listdir("assets/stamps")]
+    stamp_list = [image.load(f"assets/stamps/{img}") for img in sorted(listdir("assets/stamps"))]
     return stamp_list
 
 def stamp_manager(screen, stamp_list, button_data):

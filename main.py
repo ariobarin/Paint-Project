@@ -1,3 +1,4 @@
+import asyncio
 from pygame import *
 from src.background import background_manager, initialize_background
 from src.buttons import button_manager
@@ -43,7 +44,7 @@ Features:
     Changing size with slider (for tools)
 '''
 
-def main():
+async def main():
     width,height=1200,800
     screen=display.set_mode((width,height))
 
@@ -151,7 +152,8 @@ def main():
 
         # draw the stamp sizer and volume slider and update the tool settings
         stamp_size, dont_update = draw_stamp_sizer(screen, canvas_rect, button_data, tool_settings, stamp_list)
-        volume = draw_volume_slider(screen, button_data, tool_settings)
+        if music_tracks: # no music folder (like in the browser build) means no music player
+            volume = draw_volume_slider(screen, button_data, tool_settings)
         tool_settings = {"tool": tool, "col": col, "radius": radius, "fill": fill, "stamp": stamp_list[0], "stamp_size": stamp_size, "volume": volume}
         
         # check if the user is using the tool
@@ -171,10 +173,10 @@ def main():
         myClock.tick(60)  # Adjust the frame rate as needed
         display.flip()
         display.set_caption("Spongebob Paint Project - Ario Barin Ostovary")
+        await asyncio.sleep(0) # let the browser draw the frame (does nothing on the desktop)
         
 
     quit()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())

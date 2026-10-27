@@ -1,6 +1,6 @@
 # src/utils.py
 
-import numpy as np
+from math import hypot
 from pygame import *
 import pygame.font as pygame_font
 
@@ -76,7 +76,7 @@ def draw_dotted_rect(screen, color, rect, dash_length):
 
 def draw_rounded_line(screen, col, start, end, radius):
     dx, dy = end[0] - start[0], end[1] - start[1]
-    dist = np.hypot(dx, dy)
+    dist = hypot(dx, dy)
     if dist == 0: # Prevent division by zero
         return
     dx, dy = dx / dist, dy / dist

@@ -1,6 +1,6 @@
 # src/music_player.py
 
-from os import listdir
+from os import listdir, path
 import re
 from pygame import *
 from src.config import *
@@ -40,6 +40,10 @@ for button_name in music_buttons:
 paused = False
 
 def initialize_music():
+    # the browser build leaves the music out, so there may be no music folder
+    if not path.isdir("assets/music"):
+        return []
+
     # get the music tracks from the assets/music folder (end with .mp3)
     music_tracks = ["assets/music/" + music for music in listdir("assets/music") if music.endswith(".mp3")]
     mixer.music.load(music_tracks[0])
@@ -51,6 +55,9 @@ def music_player(screen, button_data, tool_settings, music_tracks):
     mouse_up = button_data["mouse_up"]
     volume = tool_settings["volume"] / 100
     global paused
+
+    if not music_tracks:
+        return music_tracks
 
     # set the volume of the music
     mixer.music.set_volume(volume)

@@ -1,15 +1,12 @@
 # src/buttons.py
 
-from os import listdir
-from tkinter import filedialog
 from pygame import *
 from src.config import *
 from src.utils import fit_img_to_rect, write_centered_text
+from src.webcompat import pick_image, picked_image, save_image
 
 
 init()
-# load all mp3s in assets/music
-music_list = ["assets/music/" + music for music in listdir("assets/music") if music.endswith(".mp3")]
 
 buttons = {
     "fill": {
@@ -102,6 +99,10 @@ def button_manager(screen, canvas_rect, button_data, tool_settings):
             case "trash":
                 trash(screen, canvas_rect)
                 updated = True
+    # in the browser a picked image arrives a few frames after the load button is clicked
+    uploaded = picked_image()
+    if uploaded:
+        updated = draw_loaded_image(screen, canvas_rect, uploaded)
     if key_x: # check if the user pressed the x key
         trash(screen, canvas_rect)
         updated = True
@@ -109,14 +110,14 @@ def button_manager(screen, canvas_rect, button_data, tool_settings):
 
 def save(screen, canvas_rect):
     # save the canvas to a file (give the user a dialogue of where they want to save the file) .png
-    file_name = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
-    if file_name: # if the user selected a file, save it
-        image.save(screen.subsurface(canvas_rect), file_name)
+    save_image(screen.subsurface(canvas_rect))
 
 def load(screen, canvas_rect):
     # load a file to the canvas (give the user a dialogue of where the file is) .png
-    file_name = filedialog.askopenfilename(filetypes=[('Pictures','*.png; *.jpg; *.jpeg')])
+    file_name = pick_image()
+    return draw_loaded_image(screen, canvas_rect, file_name)
 
+def draw_loaded_image(screen, canvas_rect, file_name):
     # if the user selected a file, load it
     if file_name:
         # clear the canvas

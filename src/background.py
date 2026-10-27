@@ -23,7 +23,7 @@ def draw_title(screen):
 
 def initialize_background(screen):
     # load all the background images
-    background_list = [image.load(f"assets/backgrounds/{img}") for img in listdir("assets/backgrounds")]
+    background_list = [image.load(f"assets/backgrounds/{img}") for img in sorted(listdir("assets/backgrounds"))]
     screen.blit(background_list[0], (0, 0))
 
     draw_title(screen)
