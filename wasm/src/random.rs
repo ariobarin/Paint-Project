@@ -1,5 +1,6 @@
 // Python's random module (the Mersenne Twister and randint), so a seed sprays the same dots as the
-// Python version
+// Python version. MT19937 is by Makoto Matsumoto and Takuji Nishimura (BSD-3-Clause); the seeding and
+// randint follow CPython's _randommodule.c and random.py.
 
 pub struct Random {
     mt: [u32; 624],

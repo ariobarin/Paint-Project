@@ -36,3 +36,9 @@ diff --strip-trailing-cr python-frames/crc.txt rust-frames/crc.txt
 ```
 
 The tour and three random sessions (2,785 frames, every tool, button and slider) are identical.
+
+## Licence
+
+`src/draw.rs` and `src/surface.rs` are ported from pygame's C source (`src_c/draw.c`, `src_c/transform.c`
+and its blending), which is under the GNU Library General Public License, version 2 or later, so those
+two files are under the LGPL 2.1 or later too.

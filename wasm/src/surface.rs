@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Ported from pygame 2.6.1 (Copyright (C) 2000-2001 Pete Shinners and the pygame contributors), which
+// is under the GNU Library General Public License, version 2 or later; this file is under the same terms.
+//
 // The parts of pygame's Surface and Rect the game uses, with pygame's own pixel arithmetic
 
 // Pixels are RGBA bytes read as little-endian u32s (0xAABBGGRR), the layout canvas ImageData uses

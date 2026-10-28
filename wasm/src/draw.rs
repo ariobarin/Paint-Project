@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Ported from pygame 2.6.1 (Copyright (C) 2000-2001 Pete Shinners and the pygame contributors), which
+// is under the GNU Library General Public License, version 2 or later; this file is under the same terms.
+//
 // pygame.draw (pygame 2.6.1, src_c/draw.c): the shapes the game draws, ported line for line so they
 // cover exactly the same pixels
 
