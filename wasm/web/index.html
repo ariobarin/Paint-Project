@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spongebob Paint Project - Ario Barin Ostovary</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  body { display: grid; place-items: center; }
+  canvas { display: block; touch-action: none; }
+  #status { position: fixed; inset: 0; display: grid; place-items: center; color: #bbb; font: 15px/1.5 system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="status">Loading the paint project…</div>
+<canvas id="screen" width="1200" height="800"></canvas>
+<input id="picker" type="file" accept="image/png,image/jpeg" hidden>
+<script type="module">
+  // The paint project, compiled from Rust to WebAssembly (paint.wasm, with its buttons, icons and text
+  // built in). This page decodes the photos, runs the program on every animation frame and passes it
+  // the mouse and keyboard; src/lib.rs has the other side.
+  //
+  // ariobarin.com opens this page with #preload while the visitor reads, then calls ariobarinPlay()
+  // when Play is pressed. Until then the program holds its first frame and leaves the keyboard alone.
+  const WIDTH = 1200
+  const HEIGHT = 800
+  const canvas = document.getElementById("screen")
+  const context = canvas.getContext("2d", { alpha: false })
+  const picker = document.getElementById("picker")
+
+  window.ariobarinPlaying = location.hash != "#preload"
+  window.ariobarinPaused = false
+  window.ariobarinPlay = () => {
+    window.ariobarinPlaying = true
+    window.ariobarinPaused = false
+    window.focus()
+  }
+
+  // show the 1200x800 program as large as the window allows; scaled up it keeps its hard pixel edges
+  function fit() {
+    const scale = Math.min(innerWidth / WIDTH, innerHeight / HEIGHT)
+    canvas.style.width = `${WIDTH * scale}px`
+    canvas.style.height = `${HEIGHT * scale}px`
+    canvas.style.imageRendering = scale * devicePixelRatio >= 1 ? "pixelated" : "auto"
+  }
+  addEventListener("resize", fit)
+  fit()
+
+  let game
+  const bytes = (pointer, length) => new Uint8Array(game.memory.buffer, pointer, length)
+
+  // the browser decodes the photos (WebP, JPEG); the program gets their raw pixels
+  const scratch = document.createElement("canvas").getContext("2d", { willReadFrequently: true })
+  async function pixels(blob) {
+    const bitmap = await createImageBitmap(blob, { colorSpaceConversion: "none" })
+    scratch.canvas.width = bitmap.width
+    scratch.canvas.height = bitmap.height
+    scratch.clearRect(0, 0, bitmap.width, bitmap.height)
+    scratch.drawImage(bitmap, 0, 0)
+    return { width: bitmap.width, height: bitmap.height, data: scratch.getImageData(0, 0, bitmap.width, bitmap.height).data }
+  }
+  function give(image) {
+    bytes(game.image_buffer(image.width, image.height), image.data.length).set(image.data)
+  }
+
+  const imports = {
+    env: {
+      // Save: the canvas as a PNG download (the desktop version asks where to save it)
+      save_image(pointer, width, height) {
+        const image = new ImageData(new Uint8ClampedArray(bytes(pointer, width * height * 4)), width, height)
+        const out = document.createElement("canvas")
+        out.width = width
+        out.height = height
+        out.getContext("2d").putImageData(image, 0, 0)
+        out.toBlob((blob) => {
+          const link = document.createElement("a")
+          link.href = URL.createObjectURL(blob)
+          link.download = "painting.png"
+          link.click()
+          setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+        }, "image/png")
+      },
+      // Load: a file picker; the picture reaches the program a few frames later
+      pick_image() {
+        picker.value = ""
+        picker.click()
+      },
+    },
+  }
+  picker.addEventListener("change", async () => {
+    const file = picker.files[0]
+    if (!file) return
+    try {
+      give(await pixels(file))
+      game.picked_image()
+    } catch {} // not a picture the browser can read
+  })
+
+  const firstBackground = fetch("first_background.webp").then((r) => r.blob()).then(pixels)
+  const { instance } = await WebAssembly.instantiateStreaming(fetch("paint.wasm"), imports)
+  game = instance.exports
+  give(await firstBackground)
+  const seed = crypto.getRandomValues(new Uint32Array(2))
+  game.start(seed[0], seed[1])
+
+  // then the stamps and the other backgrounds, which the program waits for before its second frame
+  fetch("more.bin").then((r) => r.arrayBuffer()).then(async (more) => {
+    bytes(game.more_buffer(more.byteLength), more.byteLength).set(new Uint8Array(more))
+    const count = game.background_count()
+    const decoded = await Promise.all(Array.from({ length: count }, (_, i) => {
+      const slice = bytes(game.background_offset(i), game.background_length(i)).slice()
+      return pixels(new Blob([slice]))
+    }))
+    decoded.forEach((image, i) => {
+      give(image)
+      game.background_ready(i)
+    })
+  })
+
+  let image
+  function show() {
+    if (!image || image.data.buffer !== game.memory.buffer) {
+      image = new ImageData(new Uint8ClampedArray(game.memory.buffer, game.screen_pixels(), WIDTH * HEIGHT * 4), WIDTH, HEIGHT)
+    }
+    context.putImageData(image, 0, 0)
+  }
+
+  let shown = false
+  requestAnimationFrame(function tick(now) {
+    // preloading: show the first frame, then hold until Play
+    if (shown && !window.ariobarinPlaying) {
+      window.ariobarinPaused = true
+      game.work()
+    } else if (game.frame(now)) {
+      show()
+      if (!shown) {
+        shown = true
+        document.getElementById("status").remove()
+      }
+    }
+    requestAnimationFrame(tick)
+  })
+
+  // the mouse, in the program's pixels; like SDL, a drag keeps reporting outside the window
+  let last = { x: 0, y: 0, buttons: 0 }
+  let shift = false
+  let ctrl = false
+  function report(event) {
+    if (event) {
+      const box = canvas.getBoundingClientRect()
+      last = {
+        x: Math.floor((event.clientX - box.left) * WIDTH / box.width),
+        y: Math.floor((event.clientY - box.top) * HEIGHT / box.height),
+        // pygame's order is left, middle, right; the browser's bits are left 1, right 2, middle 4
+        buttons: (event.buttons & 1) | ((event.buttons & 4) >> 1) | ((event.buttons & 2) << 1),
+      }
+    }
+    game.pointer(last.x, last.y, last.buttons, shift, ctrl)
+  }
+  canvas.addEventListener("pointermove", (event) => report(event))
+  canvas.addEventListener("pointerdown", (event) => {
+    canvas.setPointerCapture(event.pointerId)
+    report(event)
+    game.mouse_button(1)
+  })
+  canvas.addEventListener("pointerup", (event) => {
+    report(event)
+    game.mouse_button(0)
+  })
+  canvas.addEventListener("contextmenu", (event) => event.preventDefault())
+  // the mouse wheel scrolls the page around the program (pygame would also count it as a click)
+
+  for (const [type, down] of [["keydown", true], ["keyup", false]]) {
+    addEventListener(type, (event) => {
+      shift = event.shiftKey
+      ctrl = event.ctrlKey
+      report()
+      const key = event.key.toLowerCase()
+      if (down && !event.repeat && ["x", "y", "z"].includes(key)) {
+        if (ctrl) event.preventDefault() // undo and redo belong to the program, not the browser
+        game.key(key.charCodeAt(0))
+      }
+    })
+  }
+</script>
+</body>
+</html>
