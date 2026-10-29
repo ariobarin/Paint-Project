@@ -1,10 +1,7 @@
-// Renders frames from a script without a browser, to compare with the Python version frame by frame.
-// Needs a lossless bake (python wasm/bake.py --lossless). Usage:
+// Renders frames from a script without a browser, to compare with the Python version frame by frame,
+// for the frame check of ariobarin.com's Pygame pipeline (scripts/games/pygame/frames.py, which documents
+// the script format). Needs a lossless bake (uv run wasm/bake.py --lossless). Usage:
 //     cargo run --release --example frames -- <script> <out dir>
-//
-// Script lines: "seed N", or one frame: "f X Y BUTTONS MODIFIERS EVENTS [SHOT]", where BUTTONS is three
-// 0/1 digits (left, middle, right), MODIFIERS is "-", "s", "c" or "sc", and EVENTS is "-" or a comma
-// list of d (button down), u (button up) and kX (key X).
 
 use std::fs::{self, File};
 use std::io::BufWriter;
@@ -80,17 +77,19 @@ fn main() {
             mx: w[1].parse().unwrap(),
             my: w[2].parse().unwrap(),
             mb: [b[0] == b'1', b[1] == b'1', b[2] == b'1'],
-            shift: w[4].contains('s'),
-            ctrl: w[4].contains('c'),
+            shift: w[4].split(',').any(|k| k == "LSHIFT" || k == "RSHIFT"),
+            ctrl: w[4].split(',').any(|k| k == "LCTRL" || k == "RCTRL"),
             events: Vec::new(),
         };
         if w[5] != "-" {
             for e in w[5].split(',') {
-                input.events.push(match e.as_bytes()[0] {
-                    b'd' => Event::MouseDown,
-                    b'u' => Event::MouseUp,
-                    _ => Event::Key(e.chars().nth(1).unwrap()),
-                });
+                // Paint reads the left button and the X, Y and Z keys going down
+                match e {
+                    "d" => input.events.push(Event::MouseDown),
+                    "u" => input.events.push(Event::MouseUp),
+                    _ if e.starts_with('k') && e.len() == 2 => input.events.push(Event::Key(e.chars().nth(1).unwrap())),
+                    _ => {}
+                }
             }
         }
         paint.frame(&input, &art);

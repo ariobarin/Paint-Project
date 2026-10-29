@@ -23,19 +23,21 @@ stamps and the other backgrounds) after the first frame.
 
 ## Checking it against the Python version
 
-`parity/` runs the Python version headless through a script of inputs and logs every frame, and
-`examples/frames.rs` does the same for the port. Bake with `--lossless` first, so the backgrounds
-are exact.
+The frame check is the one [ariobarin.com](https://github.com/ariobarin/ariobarin.com)'s Pygame pipeline
+uses for every port, in its `scripts/games/pygame/`: `frames.py` runs the Python version headless through a
+script of inputs and logs every frame, and `examples/frames.rs` does the same for the port. Bake with
+`--lossless` first, so the backgrounds are exact. From this repository's root, with `SITE` set to an
+ariobarin.com checkout:
 
 ```bash
 uv run wasm/bake.py --lossless
-uv run python wasm/parity/gen_scripts.py 4
-uv run --with pygame==2.6.1 --with numpy python wasm/parity/paint_frames.py . wasm/parity/scripts/tour.txt python-frames
-cargo run --release --manifest-path wasm/Cargo.toml --example frames -- wasm/parity/scripts/tour.txt rust-frames
-diff --strip-trailing-cr python-frames/crc.txt rust-frames/crc.txt
+uv run python $SITE/scripts/games/pygame/checks/paint/gen_scripts.py scripts
+uv run --with pygame==2.6.1 --with numpy python $SITE/scripts/games/pygame/frames.py run . scripts/tour.txt python-frames --setup $SITE/scripts/games/pygame/checks/paint/setup.py
+cargo run --release --manifest-path wasm/Cargo.toml --example frames -- scripts/tour.txt rust-frames
+uv run python $SITE/scripts/games/pygame/frames.py compare python-frames rust-frames
 ```
 
-The tour and three random sessions (2,785 frames, every tool, button and slider) are identical.
+The tour and three random sessions (2,894 frames, every tool, button and slider) are identical.
 
 ## Licence
 
